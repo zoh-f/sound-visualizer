@@ -1,1 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Waveform Generator</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <link href="//cdn.bootcss.com/noUiSlider/8.5.1/nouislider.min.css" rel="stylesheet">
+  <script src="//cdn.bootcss.com/noUiSlider/8.5.1/nouislider.js"></script>
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
+  <style>
+    body {
+  font-family: 'Arial', sans-serif;
+  background-color: #f4f4f9;
+  color: #333;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
+
+h1 {
+  color: #2c3e50;
+  margin-bottom: 20px;
+}
+
+.controls {
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  width: 80%;
+  max-width: 600px;
+  margin: 20px auto;
+}
+
+label {
+  font-weight: bold;
+  display: block;
+  margin-top: 10px;
+  color: #34495e;
+}
+
+input, select, button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 5px;
+  margin-bottom: 5px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 16px;
+  box-sizing: border-box; /* Ensures padding doesn't affect width */
+}
+
+button {
+  background-color: #3498db;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s ease-in-out;
+}
+
+button:hover {
+  background-color: #2980b9;
+}
+
+.slider-container {
+  margin-top: 15px;
+  margin-bottom: 5em; /* adds 2 units of spacing after each div */
+}
+
+audio {
+  width: 100%;
+  margin-top: 15px;
+}
+
+#waveform-plot {
+  margin-top: 20px;
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+  </style>
+</head>
+<body>
+  <h1>Sound Wave Visualizer</h1>
+  
+  <!-- Controls Section -->
+  <div class="controls">
+    <label for="waveform">Choose a waveform:</label>
+    <select id="waveform" onchange="updateViews()">
+      <option value="sine">Sine</option>
+      <option value="cosine">Cosine</option>
+      <option value="square">Square</option>
+      <option value="sawtooth">Sawtooth</option>
+    </select>
+
+    <label for="note">Note:</label><br>
+    <div id="note" class="slider-container"></div>
+
+    <label for="amplitude">Amplitude:</label>
+    <input type="number" id="amplitude" min="0" max="1" step="0.01" value="0.5" onchange="updateViews()">
+
+    <p id="equation">$$ A \sin(2\pi f t) $$</p>
+
+    <p id = "freq">(C1 is equal to a frequency of 32.7032 Hz)</p>
+
+    <!-- <button onclick="generateWave(), graphWave(), updateViews()">Generate Wave</button> -->
+    <div id="waveform-plot"></div>
+  </div>
+
+  <!-- Audio Section -->
+  <div class="controls">
+    <button onclick="playSound()">Play Sound</button>
+    <audio id="audioPlayer" controls></audio>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+  const slider = document.getElementById("note");
+
+  // Adjust layout dynamically if needed
+  const adjustLayout = () => {
+    const sliderWidth = Math.min(window.innerWidth * 0.8, 600); // 80% of viewport or 600px max
+    slider.style.width = `${sliderWidth}px`;
+  };
+
+  // Call the function initially and on window resize
+  adjustLayout();
+  window.addEventListener("resize", adjustLayout);
+});
+    const notes = [
+      "C1", "C#1", "D1", "D#1", "E1", "F1", "F#1", "G1", "G#1", "A1", "A#1", "B1",
+      "C2", "C#2", "D2", "D#2", "E2", "F2", "F#2", "G2", "G#2", "A2", "A#2", "B2",
+      "C3", "C#3", "D3", "D#3", "E3", "F3", "F#3", "G3", "G#3", "A3", "A#3", "B3",
+      "C4", "C#4", "D4", "D#4", "E4", "F4", "F#4", "G4", "G#4", "A4", "A#4", "B4",
+      "C5", "C#5", "D5", "D#5", "E5", "F5", "F#5", "G5", "G#5", "A5", "A#5", "B5",
+      "C6", "C#6", "D6", "D#6", "E6", "F6", "F#6", "G6", "G#6", "A6", "A#6", "B6",
+      "C7"
+    ];
+
+    // Initialize the slider
+    const slider = document.getElementById('note');
+    noUiSlider.create(slider, {
+      start: [24], // Starting point (e.g., A3)
+      range: { min: 0, max: notes.length - 1 },
+      step: 1,
+      tooltips: {
+        to: (value) => notes[Math.round(value)],
+        from: (value) => notes.indexOf(value),
+      },
+      format: {
+        to: (value) => notes[Math.round(value)],
+        from: (value) => notes.indexOf(value),
+      },
+      pips: {
+    mode: 'values',
+    values: [0, 12, 24, 36, 48, 60, 72], // Positions of the first note of each octave
+    density: 4, // Adjust density for spacing
+    format: {
+      to: value => {
+        const notes = {
+          0: "C1",
+          12: "C2",
+          24: "C3",
+          36: "C4",
+          48: "C5",
+          60: "C6",
+          72: "C7"
+        };
+        return notes[value] || ""; // Return note label or empty string
+      },
+    },
+  },
+  });
+
+    // Update function for slider
+    slider.noUiSlider.on('update', (values, handle) => {
+      const selectedNote = values[handle];
+      updateViews();
+      console.log(`Selected note: ${selectedNote}`);
+    });
+
+    // Generate Wave Function
+    function generateWave() {
+      const note = slider.noUiSlider.get();
+      const waveform = document.getElementById("waveform").value;
+      const amplitude = parseFloat(document.getElementById("amplitude").value);
+      //const noteIndex = slider.noUiSlider.get();
+      //const note = notes[noteIndex];
+      console.log(note)
+
+      fetch('http://127.0.0.1:5000/generate_wave', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note, waveform, amplitude })
+      })
+      .then(response => response.blob())
+      .then(audioBlob => {
+        const audioPlayer = document.getElementById('audioPlayer');
+      const audioUrl = URL.createObjectURL(audioBlob);
+      audioPlayer.src = audioUrl;
+      })
+      .catch(error => console.error('Error:', error));
+    }
+
+    // Play sound
+    function playSound() {
+      document.getElementById("audioPlayer").play();
+    }
+
+    
+    function noteToFreq(note) {
+    const noteFrequencies = {
+      "C1": 32.7032, "C#1": 34.6478, "D1": 36.7081, "D#1": 38.8909, "E1": 41.2034, "F1": 43.6535,
+      "F#1": 46.2493, "G1": 48.9994, "G#1": 51.9130, "A1": 55.0000, "A#1": 58.2705, "B1": 61.7354,
+      "C2": 65.4064, "C#2": 69.2957, "D2": 73.4162, "D#2": 77.7817, "E2": 82.4069, "F2": 87.3071,
+      "F#2": 92.4986, "G2": 97.9989, "G#2": 103.826, "A2": 110.000, "A#2": 116.541, "B2": 123.471,
+      "C3": 130.813, "C#3": 138.591, "D3": 146.832, "D#3": 155.563, "E3": 164.814, "F3": 174.614,
+      "F#3": 184.997, "G3": 195.998, "G#3": 207.652, "A3": 220.000, "A#3": 233.082, "B3": 246.942,
+      "C4": 261.626, "C#4": 277.183, "D4": 293.665, "D#4": 311.127, "E4": 329.628, "F4": 349.228,
+      "F#4": 369.994, "G4": 392.000, "G#4": 415.305, "A4": 440.000, "A#4": 466.164, "B4": 493.883,
+      "C5": 523.251, "C#5": 554.365, "D5": 587.330, "D#5": 622.254, "E5": 659.255, "F5": 698.456,
+      "F#5": 739.989, "G5": 783.991, "G#5": 830.609, "A5": 880.000, "A#5": 932.328, "B5": 987.767,
+      "C6": 1046.502, "C#6": 1108.731, "D6": 1174.660, "D#6": 1244.508, "E6": 1318.510, "F6": 1396.913,
+      "F#6": 1479.978, "G6": 1567.982, "G#6": 1661.219, "A6": 1760.000, "A#6": 1864.656, "B6": 1975.533,
+      "C7": 2093.005
+    };
+    return noteFrequencies[note] || 440
+    }
+
+    function updateViews() {
+      generateWave()
+      graphWave()
+
+    const amp = parseFloat(document.getElementById("amplitude").value);
+    const note = slider.noUiSlider.get();
+    const freq = noteToFreq(note)
+    const wave = document.getElementById("waveform").value;
+    
+    let equation = "";
+
+    // Define the equation based on waveform type
+    if (wave === "sine") {
+        equation = `${amp} \\sin(2\\pi \\cdot${freq} t)`;
+    } else if (wave === "square") {
+        equation = `${amp} \\text{sgn}(\\sin(2\\pi \\cdot${freq} t))`;
+    } else if (wave === "cosine") {
+      equation = `${amp} \\cos(2\\pi \\cdot${freq} t)`;
+    } else if (wave === "sawtooth") {
+        equation = `${amp} (2( t \\cdot ${freq} - \\lfloor t \\cdot ${freq} + 0.5 \\rfloor ))`;
+    }
+    //equation = equation.replace("A", amplitude.toFixed(2)).replace("f", frequency.toFixed(2));
+    console.log(equation)
+    // Update the equation display
+    document.getElementById("equation").innerHTML = `$$ ${equation} $$`;
+    document.getElementById("freq").innerHTML = `(${note} is equal to a frequency of ${freq} Hz)`;
+    MathJax.typeset(); // Re-render equation
+}
+
+    async function graphWave() {
+            // Data to send to the backend
+            const requestData = {
+                note: slider.noUiSlider.get(),         // Frequency in Hz
+                wave_type: document.getElementById("waveform").value,    // Wave type: sine, cosine, square, sawtooth
+                duration: 1.0,        // Duration in seconds
+                amplitude: document.getElementById("amplitude").value        // Amplitude (0.0 to 1.0)
+            };
+
+            try {
+                // Fetch waveform data from the backend
+                const response = await fetch('/graph_wave', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestData)
+                });
+                console.log(response)
+                const data = await response.json();
+
+                // Plot the waveform
+                const trace = {
+                    x: data.time,
+                    y: data.waveform,
+                    mode: 'lines',
+                    name: `${requestData.wave_type} wave`
+                };
+
+                const layout = {
+                    title: 'Graph of Sound Wave',
+                    xaxis: { title: 'Time (s)' ,
+                    range: [0, 0.02] // Default range for x-axis (start, end) 
+                    },
+                    yaxis: { title: 'Amplitude' }
+                };
+
+                Plotly.newPlot('waveform-plot', [trace], layout);
+            } catch (error) {
+                console.error('Error generating waveform:', error);
+            }
+        }
+    </script>
+</body>
+</html>
