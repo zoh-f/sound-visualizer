@@ -1,17 +1,13 @@
 import numpy as np
-#import sympy
-#import sounddevice as sd
 import soundfile as sf
-import matplotlib.pyplot as plt
 from flask import Flask, request, jsonify, send_file, send_from_directory, render_template
 import io
 import plotly.graph_objs as go
 from flask_cors import CORS
-#import os
 
 
 app = Flask(__name__, static_folder='frontend')
-CORS(app, resources={r"/*": {"origins": "*"}})  # Allow all origins for all routes
+CORS(app, resources={r"/*": {"origins": "*"}}) 
 
 SAMPLING_RATE = 44100
 
@@ -45,10 +41,9 @@ def get_waveform(note, type, duration = 1.0, amplitude = .5):
 
     freq = float(note_to_frequency(note))
     amplitude = float(amplitude)
-    # Ensure frequency, duration, and amplitude are valid numbers
+
     if not isinstance(freq, (int, float)):
-        print(freq)
-        raise ValueError("Frequency (freq) must be a number.")
+        raise ValueError("Frequency must be a number.")
     if not isinstance(duration, (int, float)) or duration <= 0:
         raise ValueError("Duration must be a positive number.")
     if not isinstance(amplitude, (int, float)) or not (0 <= amplitude <= 1):
@@ -80,20 +75,20 @@ def generate_wave():
     wf = get_waveform(note, waveform, amplitude=amplitude)
 
     buffer = io.BytesIO()
-    sf.write(buffer, wf[1], SAMPLING_RATE, format='WAV')
+    sf.write(buffer, wf[1], SAMPLING_RATE, format='ogg')
     buffer.seek(0)
 
-    return send_file(buffer, mimetype='audio/wav', as_attachment=True, download_name="waveform.wav")
+    return send_file(buffer, mimetype='audio/ogg', as_attachment=True, download_name="waveform.ogg")
 
 @app.route('/graph_wave', methods=['POST'])
 def graph_wave():
     data = request.json
-    print("Received data:", data)  
+    # print("received data:", data)  
     note = data['note']
     waveform = data['wave_type']
     amplitude = data['amplitude']
     t, waveform = get_waveform(note, waveform, amplitude=amplitude)
-    # Convert NumPy arrays to lists
+    # convert NumPy arrays to lists
     t = t.tolist()  
     waveform = waveform.tolist() 
     return jsonify({'time': t, 'waveform': waveform})
