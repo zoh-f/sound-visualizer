@@ -50,7 +50,7 @@ input, select, button {
   border: 1px solid #ccc;
   border-radius: 5px;
   font-size: 16px;
-  box-sizing: border-box; /* Ensures padding doesn't affect width */
+  box-sizing: border-box; 
 }
 
 button {
@@ -67,7 +67,7 @@ button:hover {
 
 .slider-container {
   margin-top: 15px;
-  margin-bottom: 5em; /* adds 2 units of spacing after each div */
+  margin-bottom: 5em; 
 }
 
 audio {
@@ -88,7 +88,6 @@ audio {
 <body>
   <h1>Sound Wave Visualizer</h1>
   
-  <!-- Controls Section -->
   <div class="controls">
     <label for="waveform">Choose a waveform:</label>
     <select id="waveform" onchange="updateViews()">
@@ -112,7 +111,6 @@ audio {
     <div id="waveform-plot"></div>
   </div>
 
-  <!-- Audio Section -->
   <div class="controls">
     <button onclick="playSound()">Play Sound</button>
     <audio id="audioPlayer" controls></audio>
@@ -122,13 +120,12 @@ audio {
     document.addEventListener("DOMContentLoaded", () => {
   const slider = document.getElementById("note");
 
-  // Adjust layout dynamically if needed
   const adjustLayout = () => {
     const sliderWidth = Math.min(window.innerWidth * 0.8, 600); // 80% of viewport or 600px max
     slider.style.width = `${sliderWidth}px`;
   };
 
-  // Call the function initially and on window resize
+  // call the function initially and on window resize
   adjustLayout();
   window.addEventListener("resize", adjustLayout);
 });
@@ -142,10 +139,9 @@ audio {
       "C7"
     ];
 
-    // Initialize the slider
     const slider = document.getElementById('note');
     noUiSlider.create(slider, {
-      start: [24], // Starting point (e.g., A3)
+      start: [24], // default start val
       range: { min: 0, max: notes.length - 1 },
       step: 1,
       tooltips: {
@@ -158,8 +154,8 @@ audio {
       },
       pips: {
     mode: 'values',
-    values: [0, 12, 24, 36, 48, 60, 72], // Positions of the first note of each octave
-    density: 4, // Adjust density for spacing
+    values: [0, 12, 24, 36, 48, 60, 72], // positions of the first note of each octave
+    density: 4, 
     format: {
       to: value => {
         const notes = {
@@ -171,17 +167,17 @@ audio {
           60: "C6",
           72: "C7"
         };
-        return notes[value] || ""; // Return note label or empty string
+        return notes[value] || "";
       },
     },
   },
   });
 
     // Update function for slider
-    slider.noUiSlider.on('update', (values, handle) => {
+    slider.noUiSlider.on('change', (values, handle) => {
       const selectedNote = values[handle];
       updateViews();
-      console.log(`Selected note: ${selectedNote}`);
+      //console.log(`Selected note: ${selectedNote}`);
     });
 
     // Generate Wave Function
@@ -189,9 +185,6 @@ audio {
       const note = slider.noUiSlider.get();
       const waveform = document.getElementById("waveform").value;
       const amplitude = parseFloat(document.getElementById("amplitude").value);
-      //const noteIndex = slider.noUiSlider.get();
-      //const note = notes[noteIndex];
-      console.log(note)
 
       fetch('http://127.0.0.1:5000/generate_wave', {
         method: 'POST',
@@ -207,7 +200,6 @@ audio {
       .catch(error => console.error('Error:', error));
     }
 
-    // Play sound
     function playSound() {
       document.getElementById("audioPlayer").play();
     }
@@ -253,34 +245,30 @@ audio {
     } else if (wave === "sawtooth") {
         equation = `${amp} (2( t \\cdot ${freq} - \\lfloor t \\cdot ${freq} + 0.5 \\rfloor ))`;
     }
-    //equation = equation.replace("A", amplitude.toFixed(2)).replace("f", frequency.toFixed(2));
-    console.log(equation)
-    // Update the equation display
     document.getElementById("equation").innerHTML = `$$ ${equation} $$`;
     document.getElementById("freq").innerHTML = `(${note} is equal to a frequency of ${freq} Hz)`;
-    MathJax.typeset(); // Re-render equation
+    MathJax.typeset(); // re-render equation
 }
 
     async function graphWave() {
-            // Data to send to the backend
             const requestData = {
-                note: slider.noUiSlider.get(),         // Frequency in Hz
-                wave_type: document.getElementById("waveform").value,    // Wave type: sine, cosine, square, sawtooth
-                duration: 1.0,        // Duration in seconds
-                amplitude: document.getElementById("amplitude").value        // Amplitude (0.0 to 1.0)
+                note: slider.noUiSlider.get(),     
+                wave_type: document.getElementById("waveform").value,   
+                duration: 1.0,       
+                amplitude: document.getElementById("amplitude").value
             };
 
             try {
-                // Fetch waveform data from the backend
+                // fetch waveform data from the backend
                 const response = await fetch('/graph_wave', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(requestData)
                 });
-                console.log(response)
+                //console.log(response)
                 const data = await response.json();
 
-                // Plot the waveform
+                // plot the waveform
                 const trace = {
                     x: data.time,
                     y: data.waveform,
@@ -291,7 +279,7 @@ audio {
                 const layout = {
                     title: 'Graph of Sound Wave',
                     xaxis: { title: 'Time (s)' ,
-                    range: [0, 0.02] // Default range for x-axis (start, end) 
+                    range: [0, 0.02] // default range for x-axis
                     },
                     yaxis: { title: 'Amplitude' }
                 };
